@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "news_reader"
+version = "0.1.0"
+description = "TTS news reader from RSS feeds"
+authors = ["amilekhin <kensei.trg@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+feedparser = "^6.0.10"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.14.4"
+mypy = "^0.961"
+black = "^22.6.0"
+ipython = "^8.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
