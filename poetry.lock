@@ -414,6 +414,14 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "urwid"
+version = "2.1.2"
+description = "A full-featured console (xterm et al.) user interface library"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "wcwidth"
 version = "0.2.5"
 description = "Measures the displayed width of unicode strings in a terminal"
@@ -432,7 +440,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "ac1f1751e31cb352b5f6cec6be99935212679b3aa3d66167d3b305c03a60f240"
+content-hash = "7ede580568b5af9c3b7d816a0d241501ee35ce1637739144563f9a37248cc0d8"
 
 [metadata.files]
 appnope = [
@@ -654,6 +662,9 @@ traitlets = [
 typing-extensions = [
     {file = "typing_extensions-4.2.0-py3-none-any.whl", hash = "sha256:6657594ee297170d19f67d55c05852a874e7eb634f4f753dbd667855e07c1708"},
     {file = "typing_extensions-4.2.0.tar.gz", hash = "sha256:f1c24655a0da0d1b67f07e17a5e6b2a105894e6824b92096378bb3668ef02376"},
+]
+urwid = [
+    {file = "urwid-2.1.2.tar.gz", hash = "sha256:588bee9c1cb208d0906a9f73c613d2bd32c3ed3702012f51efe318a3f2127eae"},
 ]
 wcwidth = [
     {file = "wcwidth-0.2.5-py2.py3-none-any.whl", hash = "sha256:beb4802a9cebb9144e99086eff703a642a13d6a0052920003a230f3294bbe784"},
