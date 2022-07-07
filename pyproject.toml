@@ -7,7 +7,7 @@ authors = ["amilekhin <kensei.trg@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.10"
 feedparser = "^6.0.10"
-urwid = "^2.1.2"
+npyscreen = "^4.10.5"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.14.4"
