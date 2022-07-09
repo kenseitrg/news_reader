@@ -1,93 +1,152 @@
-import npyscreen
+from typing import Iterable, List
+from itertools import cycle
+from textual.widget import Widget
+from textual.reactive import Reactive
+from textual.app import App
+from textual import events
+from textual.keys import Keys
+from textual.widgets import Footer
+from rich.text import Text
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.console import Group, RenderableType
+
 from .feed_parser import parse_feeds
 
 feeds = parse_feeds()
 
 
-class FeedList(npyscreen.MultiLineAction):
-    def __init__(self, *args, **keywords):
-        super(FeedList, self).__init__(*args, **keywords)
-        self.add_handlers({"q": self.quit})
+class ListItem(Widget):
+    highlighted = Reactive(False)
+    text = Reactive("")
 
-    def display_value(self, vl):
-        return vl.source
+    def __init__(self, text, name: str | None = None) -> None:
+        super().__init__(name)
+        self.text = text
 
-    def actionHighlighted(self, act_on_this, keypress):
-        self.parent.parentApp.getForm("ARTICLELIST").value = act_on_this
-        self.parent.parentApp.switchForm("ARTICLELIST")
-
-    def quit(self):
-        self.parent.parentApp.switchForm(None)
+    def render(self) -> Text:
+        return Text(self.text, style="bold" if self.highlighted else "")
 
 
-class FeedListDisplay(npyscreen.FormMutt):
-    MAIN_WIDGET_CLASS = FeedList
+class ListView(Widget):
+    idx = Reactive(0)
+    has_focus: Reactive[bool] = Reactive(False)
+    items: Reactive[List[ListItem]] = Reactive([])
 
-    def beforeEditing(self):
-        self.update_list()
+    def __init__(self, items: List[ListItem], name: str | None = None) -> None:
+        super().__init__(name)
+        self.items = items
+        self.name = name
+        self.items[self.idx].highlighted = True
 
-    def update_list(self):
-        self.wMain.values = feeds
-        self.wMain.display()
+    def render(self):
+        return Panel(
+            Group(*self.items),
+            title=self.name,
+            border_style="green" if self.has_focus else "black",
+        )
 
+    def on_key(self, event: events.Key):
+        if self.has_focus:
+            self.process_key(event)
 
-class ArticleList(npyscreen.MultiLine):
-    def display_value(self, vl):
-        return vl.title
+    def process_key(self, event: events.Key):
+        if event.key == Keys.Up:
+            self.items[self.idx].highlighted = False
+            self.idx = max(0, self.idx - 1)
+            self.items[self.idx].highlighted = True
+            self.app.articles_view.update_items(self.idx)
+        elif event.key == Keys.Down:
+            self.items[self.idx].highlighted = False
+            self.idx = min(len(self.items) - 1, self.idx + 1)
+            self.items[self.idx].highlighted = True
+            self.app.articles_view.update_items(self.idx)
 
-    def callback(self):
-        value = self.values[self.cursor_line]
-        self.parent.summary.value = value.summary
-        self.parent.summary.display()
+    async def on_focus(self, event: events.Focus) -> None:
+        if self.idx >= len(self.items):
+            self.idx = 0
+        self.items[self.idx].highlighted = True
+        self.has_focus = True
 
-    def h_cursor_line_up(self, ch):
-        self.cursor_line -= 1
-        self.callback()
-        if self.cursor_line < 0:
-            if self.scroll_exit:
-                self.cursor_line = 0
-                self.h_exit_up(ch)
-            else:
-                self.cursor_line = 0
+    async def on_blur(self, event: events.Blur) -> None:
+        self.has_focus = False
 
-    def h_cursor_line_down(self, ch):
-        self.cursor_line += 1
-        self.callback()
-        if self.cursor_line >= len(self.values):
-            if self.scroll_exit:
-                self.cursor_line = len(self.values) - 1
-                self.h_exit_down(ch)
-                return True
-            else:
-                self.cursor_line -= 1
-                return True
+    async def on_enter(self, event: events.Enter) -> None:
+        if self.idx >= len(self.items):
+            self.idx = 0
+        self.items[self.idx].highlighted = True
+        self.has_focus = True
 
-        if self._my_widgets[self.cursor_line - self.start_display_at].task == "-more-":
-            if self.slow_scroll:
-                self.start_display_at += 1
-            else:
-                self.start_display_at = self.cursor_line
-
-
-class ArticleListDisplay(npyscreen.ActionFormMinimal):
-    def create(self):
-        self.value = None
-        y, x = self.useable_space()
-        self.articles = self.add(ArticleList, max_height=y // 2)
-        self.summary = self.add(npyscreen.MultiLineEdit, name="Summary", editable=False)
-
-    def beforeEditing(self):
-        if self.value:
-            self.articles.values = self.value.entries
-            self.summary.value = self.articles.values[0].summary
-        else:
-            self.articles.values = []
-
-    def on_ok(self):
-        self.parentApp.switchFormPrevious()
+    async def on_leave(self, event: events.Leave) -> None:
+        self.has_focus = False
 
 
-class UI(npyscreen.NPSAppManaged):
-    def onStart(self):
-        self.addForm("MAIN", FeedListDisplay)
-        self.addForm("ARTICLELIST", ArticleListDisplay)
+class ArticleListView(ListView):
+    idx = Reactive(0)
+    has_focus: Reactive[bool] = Reactive(False)
+    items: Reactive[List[ListItem]] = Reactive([])
+
+    def update_items(self, idx):
+        self.items = [ListItem(a.title) for a in feeds[idx].entries]
+
+    def process_key(self, event: events.Key):
+        if event.key == Keys.Up:
+            self.items[self.idx].highlighted = False
+            self.idx = max(0, self.idx - 1)
+            self.items[self.idx].highlighted = True
+            self.app.summary_view.text = (
+                feeds[self.app.sources_view.idx].entries[self.idx].summary
+            )
+        elif event.key == Keys.Down:
+            self.items[self.idx].highlighted = False
+            self.idx = min(len(self.items) - 1, self.idx + 1)
+            self.items[self.idx].highlighted = True
+            self.app.summary_view.text = (
+                feeds[self.app.sources_view.idx].entries[self.idx].summary
+            )
+
+
+class SummaryView(Widget):
+    text = Reactive("str")
+    has_focus: Reactive[bool] = Reactive(False)
+
+    def __init__(self, text, name: str | None = None) -> None:
+        super().__init__(name)
+        self.text = text
+        self.name = name
+
+    def render(self) -> Text:
+        return Panel(
+            Markdown(self.text),
+            title=self.name,
+            border_style="green" if self.has_focus else "black",
+        )
+
+
+class UI(App):
+    sources_view: Reactive[RenderableType] = Reactive(False)
+    articles_view: Reactive[RenderableType] = Reactive(False)
+    summary_view: Reactive[RenderableType] = Reactive(False)
+    widget_iter: Iterable[RenderableType] = Reactive(False)
+
+    async def on_load(self) -> None:
+        await self.bind("q", "quit", "Quit")
+        await self.bind("ctrl+i", "switch_focus", "Switch Focus")
+
+    async def on_mount(self) -> None:
+        sources = [ListItem(f.source) for f in feeds]
+        self.sources_view = ListView(sources, name="Feed Source")
+        articles = [ListItem(a.title) for a in feeds[0].entries]
+        self.articles_view = ArticleListView(articles, name="Articles")
+        summary = feeds[0].entries[0].summary
+        self.summary_view = SummaryView(summary, name="Summary")
+        self.summary_view.can_focus = False
+        await self.view.dock(Footer(), edge="bottom")
+        await self.view.dock(self.sources_view, edge="left", size=30)
+        await self.view.dock(self.articles_view, self.summary_view, edge="top")
+        self.widget_iter = cycle([self.sources_view, self.articles_view])
+        await self.action_switch_focus()
+
+    async def action_switch_focus(self):
+        cur = next(self.widget_iter)
+        await cur.focus()
