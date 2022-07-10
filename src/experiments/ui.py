@@ -5,7 +5,7 @@ from textual.reactive import Reactive
 from textual.app import App
 from textual import events
 from textual.keys import Keys
-from textual.widgets import Footer
+from textual.widgets import Footer, ScrollView
 from rich.text import Text
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -140,10 +140,13 @@ class UI(App):
         self.articles_view = ArticleListView(articles, name="Articles")
         summary = feeds[0].entries[0].summary
         self.summary_view = SummaryView(summary, name="Summary")
-        self.summary_view.can_focus = False
         await self.view.dock(Footer(), edge="bottom")
         await self.view.dock(self.sources_view, edge="left", size=30)
-        await self.view.dock(self.articles_view, self.summary_view, edge="top")
+        await self.view.dock(
+            self.articles_view,
+            self.summary_view,
+            edge="top",
+        )
         self.widget_iter = cycle([self.sources_view, self.articles_view])
         await self.action_switch_focus()
 

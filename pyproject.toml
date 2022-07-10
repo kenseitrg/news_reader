@@ -5,10 +5,12 @@ description = "TTS news reader from RSS feeds"
 authors = ["amilekhin <kensei.trg@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "3.10"
 feedparser = "^6.0.10"
 textual = "^0.1.18"
 markdownify = "^0.11.2"
+readability-lxml = "^0.8.1"
+requests = "^2.28.1"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.14.4"

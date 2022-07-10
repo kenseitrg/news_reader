@@ -1,4 +1,4 @@
-from .src.ui import UI
+from .src.simple_tui import run
 
 if __name__ == "__main__":
-    UI().run(title="UI", log="textual.log")
+    run()
